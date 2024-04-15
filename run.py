@@ -1,8 +1,6 @@
 from quantum_rl.envs.env_frozen_lake import QuantumGridWorld
 from quantum_rl.train import train
 
-
-
 if __name__ == "__main__":
     lr = 0.95
     gamma = 0.9

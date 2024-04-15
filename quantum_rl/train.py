@@ -18,7 +18,7 @@ from collections import namedtuple
 
 dev = qml.device("default.qubit", wires=4)
 
-Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))    
+Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward', 'done'))    
 
 class QReplayMemory(object):
 
@@ -27,10 +27,10 @@ class QReplayMemory(object):
         self.memory = []
         self.position = 0
 
-    def push(self, state, action, next_state, reward):
+    def push(self, state, action, next_state, reward, done):
         if len(self.memory) < self.capacity:
             self.memory.append(None)
-        self.memory[self.position] = (state, action, next_state, reward)
+        self.memory[self.position] = (state, action, next_state, reward, done)
         self.position = (self.position + 1) % self.capacity
 
     def sample(self, batch_size):
@@ -46,9 +46,6 @@ def preprocess_state(a):
     for ind in range(len(a)):
         qml.RX(np.pi * a[ind], wires=ind)
         qml.RZ(np.pi * a[ind], wires=ind)
-
-def variational_circuit(params, wires):
-    pass
 
 def layer(W):
 	""" Single layer of the variational classifier.
@@ -69,48 +66,32 @@ def layer(W):
 
 
 def decimalToBinaryFixLength(_length, _decimal):
-	binNum = bin(int(_decimal))[2:]
-	outputNum = [int(item) for item in binNum]
-	if len(outputNum) < _length:
-		outputNum = np.concatenate((np.zeros((_length-len(outputNum),)),np.array(outputNum)))
-	else:
-		outputNum = np.array(outputNum)
-	return outputNum
+    binNum = bin(int(_decimal))[2:]
+    outputNum = [int(item) for item in binNum]
+    if len(outputNum) < _length:
+        outputNum = np.concatenate((np.zeros((_length-len(outputNum),)),np.array(outputNum)))
+    else:
+        outputNum = np.array(outputNum)
+    return outputNum
 
 @qml.qnode(dev, interface='torch')
 def circuit(weights, angles=None):
 	"""The circuit of the variational classifier."""
 	# Can consider different expectation value
 	# PauliX , PauliY , PauliZ , Identity  
-
-	statepreparation(angles)
-	
+	preprocess_state(angles)
 	for W in weights:
 		layer(W)
-
 	return [qml.expval(qml.PauliZ(ind)) for ind in range(4)]
 
 
-def variational_classifier(var_Q_circuit, var_Q_bias , angles=None):
-	"""The variational classifier."""
+def variational_classifier(var_Q_circuit, var_Q_bias, angles):
+    """The variational classifier."""
+    weights = var_Q_circuit
+    bias = var_Q_bias
+    _circuit_output = circuit(weights, angles=angles)
+    return torch.tensor(_circuit_output) + bias
 
-	# Change to SoftMax???
-
-	weights = var_Q_circuit
-	# bias_1 = var_Q_bias[0]
-	# bias_2 = var_Q_bias[1]
-	# bias_3 = var_Q_bias[2]
-	# bias_4 = var_Q_bias[3]
-	# bias_5 = var_Q_bias[4]
-	# bias_6 = var_Q_bias[5]
-
-	# raw_output = circuit(weights, angles=angles) + np.array([bias_1,bias_2,bias_3,bias_4,bias_5,bias_6])
-	raw_output = circuit(weights, angles=angles) + var_Q_bias
-	# We are approximating Q Value
-	# Maybe softmax is no need
-	# softMaxOutPut = np.exp(raw_output) / np.exp(raw_output).sum()
-
-	return raw_output
 
 def square_loss(labels, predictions):
 	""" Square loss function
@@ -129,20 +110,8 @@ def square_loss(labels, predictions):
 
 def cost(var_Q_circuit, var_Q_bias, features, labels):
 	"""Cost (error) function to be minimized."""
-
-	# predictions = [variational_classifier(weights, angles=f) for f in features]
-	# Torch data type??
-	
 	predictions = [variational_classifier(var_Q_circuit = var_Q_circuit, var_Q_bias = var_Q_bias, angles=decimalToBinaryFixLength(4,item.state))[item.action] for item in features]
-	# predictions = torch.tensor(predictions,requires_grad=True)
-	# labels = torch.tensor(labels)
-	# print("PRIDICTIONS:")
-	# print(predictions)
-	# print("LABELS:")
-	# print(labels)
-
 	return square_loss(labels, predictions)
-
 
 def huber_loss(labels, predictions):
 	""" Square loss function
@@ -153,34 +122,13 @@ def huber_loss(labels, predictions):
 	Returns:
 		float: square loss
 	"""
-	# In Deep Q Learning
-	# labels = target_action_value_Q
-	# predictions = action_value_Q
-
-	# loss = 0
-	# for l, p in zip(labels, predictions):
-	# 	loss = loss + (l - p) ** 2
-	# loss = loss / len(labels)
-
-	# loss = nn.MSELoss()
 	loss = nn.SmoothL1Loss()
-	# output = loss(torch.tensor(predictions), torch.tensor(labels))
-	# print("LOSS OUTPUT")
-	# print(output)
-
 	return loss(labels, predictions)
 
-
-
 def epsilon_greedy(var_Q_circuit, var_Q_bias, epsilon, n_actions, state, train=False):
-    
     if train or np.random.rand() < ((epsilon/n_actions)+(1-epsilon)):
-            # action = np.argmax(Q[s, :])
-            # variational classifier output is torch tensor
-            # action = np.argmax(variational_classifier(var_Q_circuit = var_Q_circuit, var_Q_bias = var_Q_bias, angles = decimalToBinaryFixLength(9,s)))
-            action = torch.argmax(variational_classifier(var_Q_circuit = var_Q_circuit, var_Q_bias = var_Q_bias, angles = decimalToBinaryFixLength(4,s)))
+        action = torch.argmax(variational_classifier(var_Q_circuit = var_Q_circuit, var_Q_bias = var_Q_bias, angles = decimalToBinaryFixLength(4, state['agent'])))
     else:
-        # need to be torch tensor
         action = torch.tensor(np.random.randint(0, n_actions))
     return action
 
@@ -189,7 +137,6 @@ def train(config):
     env = gym.make('QuantumGridWorld')
     n_actions = env.action_space.n
     obs, _ = env.reset()
-    breakpoint()
 
     num_qubits = 4
     num_layers = 2
@@ -200,6 +147,8 @@ def train(config):
 
     var_Q_circuit = var_init_circuit
     var_Q_bias = var_init_bias
+    var_target_Q_circuit = var_Q_circuit.clone().detach()
+    var_target_Q_bias = var_Q_bias.clone().detach()
     opt = torch.optim.RMSprop([var_Q_circuit, var_Q_bias], lr=0.01, alpha=0.99, eps=1e-08, weight_decay=0, momentum=0, centered=False)
     
     TARGET_UPDATE = 10
@@ -219,11 +168,49 @@ def train(config):
     for episode in range(config['n_episodes']):
         print("Episode: ", episode)
         obs, _ = env.reset()
-        breakpoint()
+        a = epsilon_greedy(var_Q_circuit, var_Q_bias, config['epsilon'], n_actions, obs, train=True)
+        t = 0
+        total_reward = 0
+        done = False
 
+        while t < config['max_steps'] and not done:
+            target_update_counter += 1
+            obs_next, reward, done, truc, info = env.step(a.item())
+            total_reward += reward
+            memory.push(obs, a, obs_next, reward, done)
+            if len(memory) > batch_size:
+                transitions = memory.sample(batch_size)
+                Q_target = []
+                for transition in transitions:
+                    if transition[4]:
+                        Q_target.append(transition[3])
+                    else:
+                        Q_target.append(transition[3] + config['gamma'] * torch.max(variational_classifier(var_Q_circuit = var_target_Q_circuit, var_Q_bias = var_target_Q_bias, angles=decimalToBinaryFixLength(4, transition[2]['agent']))))
+                Q_target = torch.tensor(Q_target)
+                def closure():
+                    opt.zero_grad() 
+                    predictions = [variational_classifier(var_Q_circuit = var_Q_circuit, var_Q_bias = var_Q_bias, angles=decimalToBinaryFixLength(4, item[0]['agent']))[item[1]] for item in transitions]
+                    loss = square_loss(Q_target, predictions)
+                    loss.backward()
+                    return loss
+                opt.step(closure)
 
+            if target_update_counter % TARGET_UPDATE == 0:
+                var_target_Q_circuit = var_Q_circuit.clone().detach()
+                var_target_Q_bias = var_Q_bias.clone().detach()
 
+            a = epsilon_greedy(var_Q_circuit, var_Q_bias, config['epsilon'], n_actions, obs, train=True)
+            obs = obs_next
+            t += 1
+            if done:
+                timestep_reward.append(total_reward)
+                print("Episode: ", episode, "Reward: ", total_reward)
+                iter_index.append(episode)
+                iter_reward.append(total_reward)
+                iter_total_steps.append(t)
+                break
 
+    return iter_index, iter_reward, iter_total_steps, timestep_reward, var_Q_circuit, var_Q_bias
 
 if __name__ == "__main__":
     # ===== Config =====
@@ -245,5 +232,3 @@ if __name__ == "__main__":
         'batch_size': batch_size
     }
     train(config)
-
-
