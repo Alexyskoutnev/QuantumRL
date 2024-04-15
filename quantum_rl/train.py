@@ -1,3 +1,5 @@
+from quantum_rl.envs.env_frozen_lake import QuantumGridWorld
+
 import numpy as np
 import random
 
@@ -16,28 +18,7 @@ from collections import namedtuple
 
 dev = qml.device("default.qubit", wires=4)
 
-Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
-
-
-class QuantumFrozenLakeEnv(gym.Env):
-    def __int__(self):
-        super(QuantumFrozenLakeEnv, self).__init__()
-        self.env = gym.make('FrozenLake-v1')
-        self.action_space = self.env.action_space
-        self.observation_space = self.env.observation_space
-    
-    def reset(self):
-        return self.env.reset()
-    
-    def step(self, action):
-        return self.env.step(action)
-    
-    def render(self):
-        return self.env.render()
-    
-    def close(self):
-        return self.env.close()
-    
+Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))    
 
 class QReplayMemory(object):
 
@@ -75,9 +56,8 @@ def epsilon_greedy(var_Q_circuit, var_Q_bias, epsilon, n_actions, state):
 
 
 def train(config):
-    breakpoint()
-    env = gym.make('QauntumFrozenLake')
-    n_state, n_actions = env.observation_space.n, env.action_space.n
+    env = gym.make('QuantumGridWorld')
+    n_actions = env.action_space.n
 
 
 if __name__ == "__main__":
