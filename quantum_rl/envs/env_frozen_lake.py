@@ -15,8 +15,7 @@ class QuantumGridWorld(gym.Env):
         # Each location is encoded as an element of {0, ..., `size`}^2, i.e. MultiDiscrete([size, size]).
         self.observation_space = spaces.Dict(
             {
-                "agent": spaces.Box(0, size - 1, shape=(2,), dtype=int),
-                "target": spaces.Box(0, size - 1, shape=(2,), dtype=int),
+                "agent": spaces.Box(0, (size * size) - 1, shape=(1,), dtype=int)
             }
         )
 
@@ -50,13 +49,15 @@ class QuantumGridWorld(gym.Env):
         self.clock = None
 
     def _get_obs(self):
-        return {"agent": self._agent_location, "target": self._target_location, "holes": self._hole_locations}
+        return {"agent" : self._agent_location[0] * self.size + self._agent_location[1]}
+        # return {"agent": self._agent_location, "target": self._target_location, "holes": self._hole_locations}
 
     def _get_info(self):
         return {
             "distance": np.linalg.norm(
                 self._agent_location - self._target_location, ord=1
-            )
+            ),
+            "holes": self._hole_locations,
         }
     
     def reset(self, seed=None, options=None):
