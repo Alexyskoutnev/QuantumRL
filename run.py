@@ -1,14 +1,16 @@
 from quantum_rl.envs.env_frozen_lake import QuantumGridWorld
-from quantum_rl.train import train
+from quantum_rl.train_QQN import train, plot_rewards, plot_loss, plot_eval_rewards
 
 if __name__ == "__main__":
-    lr = 0.95
-    gamma = 0.9
-    epsilon = 0.9
-    n_episodes = 100
-    max_steps = 2500
-    n_test = 2
+    # ===== Config =====
+    lr = 0.1
+    gamma = 0.999
+    epsilon = 1.0
+    n_episodes = 500
+    max_steps = 50
+    n_test = 5
     batch_size = 4
+    eval_update = 5
     # ===== Config =====
     config = {
         'lr': lr,
@@ -17,6 +19,11 @@ if __name__ == "__main__":
         'n_episodes': n_episodes,
         'max_steps': max_steps,
         'n_test': n_test,
-        'batch_size': batch_size
+        'batch_size': batch_size,
+        'eval_update': eval_update,
+        'n_test': 5,
     }
-    train(config)
+    iter_index, iter_reward, iter_total_steps, timestep_reward, var_Q_circuit, var_Q_bias, iter_loss, eval_rewards = train(config)
+    plot_rewards(iter_index, iter_reward)
+    plot_loss(iter_index, iter_loss)
+    plot_eval_rewards(eval_rewards)

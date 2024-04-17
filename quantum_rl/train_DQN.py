@@ -14,6 +14,7 @@ import gymnasium as gym
 import numpy as np
 import random
 import pickle
+import matplotlib.pyplot as plt
 from collections import namedtuple
 
 dev = qml.device("default.qubit", wires=4)
@@ -48,22 +49,14 @@ def preprocess_state(a):
         qml.RZ(np.pi * a[ind], wires=ind)
 
 def layer(W):
-	""" Single layer of the variational classifier.
-
-	Args:
-		W (array[float]): 2-d array of variables for one layer
-	"""
-
-	qml.CNOT(wires=[0, 1])
-	qml.CNOT(wires=[1, 2])
-	qml.CNOT(wires=[2, 3])
-
-
-	qml.Rot(W[0, 0], W[0, 1], W[0, 2], wires=0)
-	qml.Rot(W[1, 0], W[1, 1], W[1, 2], wires=1)
-	qml.Rot(W[2, 0], W[2, 1], W[2, 2], wires=2)
-	qml.Rot(W[3, 0], W[3, 1], W[3, 2], wires=3)
-
+    """ Single layer of the variational classifier."""
+    qml.CNOT(wires=[0, 1])
+    qml.CNOT(wires=[1, 2])
+    qml.CNOT(wires=[2, 3])
+    qml.Rot(W[0, 0], W[0, 1], W[0, 2], wires=0)
+    qml.Rot(W[1, 0], W[1, 1], W[1, 2], wires=1)
+    qml.Rot(W[2, 0], W[2, 1], W[2, 2], wires=2)
+    qml.Rot(W[3, 0], W[3, 1], W[3, 2], wires=3)
 
 def decimalToBinaryFixLength(_length, _decimal):
     binNum = bin(int(_decimal))[2:]
@@ -76,14 +69,11 @@ def decimalToBinaryFixLength(_length, _decimal):
 
 @qml.qnode(dev, interface='torch')
 def circuit(weights, angles=None):
-	"""The circuit of the variational classifier."""
-	# Can consider different expectation value
-	# PauliX , PauliY , PauliZ , Identity  
-	preprocess_state(angles)
-	for W in weights:
-		layer(W)
-	return [qml.expval(qml.PauliZ(ind)) for ind in range(4)]
-
+    preprocess_state(angles)
+    for W in weights:
+        layer(W)
+    return [qml.expval(qml.PauliZ(ind)) for ind in range(4)]
+ 
 
 def variational_classifier(var_Q_circuit, var_Q_bias, angles):
     """The variational classifier."""
@@ -93,7 +83,7 @@ def variational_classifier(var_Q_circuit, var_Q_bias, angles):
     return torch.tensor(_circuit_output) + bias
 
 
-def square_loss(labels, predictions):
+def mse_loss(labels, predictions):
 	""" Square loss function
 
 	Args:
@@ -104,14 +94,9 @@ def square_loss(labels, predictions):
 	"""
 	loss = 0
 	for l, p in zip(labels, predictions):
-	    loss = loss + (l - p) ** 2
-	loss = loss / len(labels)
+	    loss += (l - p) ** 2
+	loss /= len(labels)
 	return loss
-
-def cost(var_Q_circuit, var_Q_bias, features, labels):
-	"""Cost (error) function to be minimized."""
-	predictions = [variational_classifier(var_Q_circuit = var_Q_circuit, var_Q_bias = var_Q_bias, angles=decimalToBinaryFixLength(4,item.state))[item.action] for item in features]
-	return square_loss(labels, predictions)
 
 def huber_loss(labels, predictions):
 	""" Square loss function
@@ -162,8 +147,10 @@ def train(config):
     iter_total_steps = []
     cost_list = []
     timestep_reward = []
+    timestep = []
+    loss_l = []
 
-    memory = QReplayMemory(80)
+    memory = QReplayMemory(128)
 
     for episode in range(config['n_episodes']):
         print("Episode: ", episode)
@@ -182,16 +169,18 @@ def train(config):
                 transitions = memory.sample(batch_size)
                 Q_target = []
                 for transition in transitions:
-                    if transition[4]:
-                        Q_target.append(transition[3])
+                    obs, a, obs_next, reward, done = transition
+                    if done:
+                        Q_target.append(reward)
                     else:
-                        Q_target.append(transition[3] + config['gamma'] * torch.max(variational_classifier(var_Q_circuit = var_target_Q_circuit, var_Q_bias = var_target_Q_bias, angles=decimalToBinaryFixLength(4, transition[2]['agent']))))
+                        Q_target.append(reward + config['gamma'] * torch.max(variational_classifier(var_Q_circuit = var_target_Q_circuit, var_Q_bias = var_target_Q_bias, angles=decimalToBinaryFixLength(4, obs_next['agent']))))
                 Q_target = torch.tensor(Q_target)
                 def closure():
                     opt.zero_grad() 
                     predictions = [variational_classifier(var_Q_circuit = var_Q_circuit, var_Q_bias = var_Q_bias, angles=decimalToBinaryFixLength(4, item[0]['agent']))[item[1]] for item in transitions]
-                    loss = square_loss(Q_target, predictions)
+                    loss = mse_loss(Q_target, predictions)
                     loss.backward()
+                    loss_l.append((t, loss.item()))
                     return loss
                 opt.step(closure)
 
@@ -210,7 +199,24 @@ def train(config):
                 iter_total_steps.append(t)
                 break
 
-    return iter_index, iter_reward, iter_total_steps, timestep_reward, var_Q_circuit, var_Q_bias
+    return iter_index, iter_reward, iter_total_steps, timestep_reward, var_Q_circuit, var_Q_bias, loss_l
+
+def plot_rewards(iter_index, iter_reward):
+    plt.plot(iter_index, iter_reward)
+    plt.title('Rewards over Episodes')
+    plt.xlabel('Episodes')
+    plt.ylabel('Total Reward')
+    plt.grid(True)
+    plt.show()
+
+def plot_loss(loss_l):
+    timesteps, losses = zip(*loss_l)
+    plt.plot(timesteps, losses)
+    plt.title('Loss over Timesteps')
+    plt.xlabel('Timesteps')
+    plt.ylabel('Loss')
+    plt.grid(True)
+    plt.show()
 
 if __name__ == "__main__":
     # ===== Config =====
@@ -220,7 +226,7 @@ if __name__ == "__main__":
     n_episodes = 100
     max_steps = 2500
     n_test = 2
-    batch_size = 4
+    batch_size = 16
     # ===== Config =====
     config = {
         'lr': lr,
@@ -232,3 +238,6 @@ if __name__ == "__main__":
         'batch_size': batch_size
     }
     train(config)
+
+    plot_rewards(iter_index, iter_reward)
+    plot_loss(loss_l)
