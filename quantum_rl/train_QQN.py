@@ -16,8 +16,8 @@ import pickle
 import matplotlib.pyplot as plt
 from collections import namedtuple
 
-# device = "qiskit.ibmq"
-device = ""
+device = "qiskit.ibmq"
+# device = ""
 if device == "qiskit.ibmq":
     print("Using IBMQ device")
     dev = qml.device("qiskit.ibmq", wires=4, backend='ibm_kyoto')
@@ -212,7 +212,10 @@ def train(config):
                 iter_total_steps.append(t)
                 iter_total_loss.append(np.mean(loss_l))
                 break
-
+            plot_rewards(iter_index, iter_reward, filename='plots/reward_plot.png')
+            plot_loss(iter_index, iter_total_loss, filename='plots/loss_plot.png')
+            plot_eval_rewards(eval_rewards, filename='plots/eval_plot.png')
+    
     return iter_index, iter_reward, iter_total_steps, timestep_reward, var_Q_circuit, var_Q_bias, iter_total_loss, eval_rewards
 
 def plot_rewards(iter_index, iter_reward, filename=None):
