@@ -22,3 +22,15 @@ The main algorithm consists of training a variational quantum circuit to approxi
 ### Quantum Circuit
 
 The variational quantum circuit is implemented using PennyLane. It consists of multiple layers, each containing rotations and entangling gates.
+
+### IBM API Token
+
+To connect to the IBM Quantum Computing Server, you will need to create a `config.toml` file with the following structure:
+
+
+```
+[qiskit.global]
+
+  [qiskit.ibmq]
+  ibmqx_token = "YOUR API KEY HERE"
+```

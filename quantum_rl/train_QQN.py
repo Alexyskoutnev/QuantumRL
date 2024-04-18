@@ -2,6 +2,7 @@ from quantum_rl.envs.env_frozen_lake import QuantumGridWorld
 
 import numpy as np
 import random
+import tqdm
 
 import pennylane as qml
 import torch
@@ -157,9 +158,7 @@ def train(config):
     eval_rewards = []
     memory = QReplayMemory(64)
 
-    for episode in range(config['n_episodes']):
-        # print("Current episode: ", episode)
-        print(f"Current Epsilon: {epsilon:.2f}")
+    for episode in tqdm.tqdm(range(config['n_episodes'])):
         loss_l = []
         obs, _ = env.reset()
         a = epsilon_greedy(var_Q_circuit, var_Q_bias, epsilon, n_actions, obs, train=True)
