@@ -1,4 +1,4 @@
-# Quantum Reinforcement Learning with Variational Quantum Circuits
+# Quantum Reinforcement Learning
 
 This repository contains Python code for implementing Quantum Reinforcement Learning (QRL) using Variational Quantum Circuits (VQC). QRL leverages the principles of quantum computing to solve reinforcement learning tasks.
 
