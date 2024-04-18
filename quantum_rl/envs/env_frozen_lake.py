@@ -50,7 +50,6 @@ class QuantumGridWorld(gym.Env):
 
     def _get_obs(self):
         return {"agent" : self._agent_location[0] * self.size + self._agent_location[1]}
-        # return {"agent": self._agent_location, "target": self._target_location, "holes": self._hole_locations}
 
     def _get_info(self):
         return {
@@ -78,8 +77,8 @@ class QuantumGridWorld(gym.Env):
         #     )
 
         self._hole_locations = set()
-        # self._hole_locations.add(tuple([1, 1]))
-        # self._hole_locations.add(tuple([2, 2]))
+        self._hole_locations.add(tuple([1, 1]))
+        self._hole_locations.add(tuple([2, 2]))
         # self._hole_locations.add(tuple([3, 1]))
         # while len(self._hole_locations) < self.num_holes:
         #     hole_location = tuple(self.np_random.integers(0, self.size, size=2, dtype=int))
@@ -103,7 +102,6 @@ class QuantumGridWorld(gym.Env):
 
         # We use `np.clip` to make sure we don't leave the grid
         new_location = np.clip(self._agent_location + direction, 0, self.size - 1)
-
         # Check if the new location is a hole
         if tuple(new_location) in self._hole_locations:
             reward = -0.2  # Agent stepped on a hole, give a penalty
@@ -115,7 +113,7 @@ class QuantumGridWorld(gym.Env):
         # Check if the agent reached the target
         terminated = np.array_equal(self._agent_location, self._target_location)
         if terminated:
-            reward = 1  # Agent reached the target, give a reward
+            done = True  # Episode is done
 
         # Combine the reward with any penalties/rewards
         reward += done * 1  # Extra reward if the episode is done

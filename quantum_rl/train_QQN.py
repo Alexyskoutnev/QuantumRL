@@ -3,8 +3,6 @@ from quantum_rl.envs.env_frozen_lake import QuantumGridWorld
 import numpy as np
 import random
 
-
-
 import pennylane as qml
 import torch
 import torch.nn as nn
@@ -153,9 +151,7 @@ def train(config):
     timestep = []
     iter_total_loss = [] 
     eval_rewards = []
-
-
-    memory = QReplayMemory(128)
+    memory = QReplayMemory(64)
 
     for episode in range(config['n_episodes']):
         # print("Current episode: ", episode)
@@ -210,32 +206,41 @@ def train(config):
                 iter_total_steps.append(t)
                 iter_total_loss.append(np.mean(loss_l))
                 break
-
+            
     return iter_index, iter_reward, iter_total_steps, timestep_reward, var_Q_circuit, var_Q_bias, iter_total_loss, eval_rewards
 
-def plot_rewards(iter_index, iter_reward):
+def plot_rewards(iter_index, iter_reward, filename=None):
     plt.plot(iter_index, iter_reward)
     plt.title('Rewards over Episodes')
     plt.xlabel('Episodes')
     plt.ylabel('Total Reward')
     plt.grid(True)
-    plt.show()
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.show()
 
-def plot_loss(iter_index, iter_reward):
+def plot_loss(iter_index, iter_reward, filename=None):
     plt.plot(iter_index, iter_reward)
     plt.title('Loss over Episodes')
     plt.xlabel('Episodes')
     plt.ylabel('Total Loss')
     plt.grid(True)
-    plt.show()
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.show()
 
-def plot_eval_rewards(eval_rewards):
+def plot_eval_rewards(eval_rewards, filename=None):
     plt.plot(eval_rewards)
     plt.title('Evaluation Rewards over Episodes')
     plt.xlabel('Episodes')
     plt.ylabel('Total Reward')
     plt.grid(True)
-    plt.show()
+    if filename:
+        plt.savefig(filename)
+    else:
+        plt.show()
 
 def evaluate(env, var_Q_circuit, var_Q_bias, n_actions, config):
     total_rewards = []
