@@ -16,10 +16,13 @@ import pickle
 import matplotlib.pyplot as plt
 from collections import namedtuple
 
+# device = "qiskit.ibmq"
 device = ""
 if device == "qiskit.ibmq":
+    print("Using IBMQ device")
     dev = qml.device("qiskit.ibmq", wires=4, backend='ibm_kyoto')
 else:
+    print("Using default.qubit device")
     dev = qml.device("default.qubit" or device, wires=4)
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward', 'done'))    
@@ -261,9 +264,7 @@ def evaluate(env, var_Q_circuit, var_Q_bias, n_actions, config):
             obs, reward, done, _, _ = env.step(action.item())
             total_reward += reward
         total_rewards.append(total_reward)
-    
     avg_reward = np.mean(total_rewards)
-    print(f"Average reward over {config['n_test']} test episodes: {avg_reward}")
     return avg_reward
 
 if __name__ == "__main__":

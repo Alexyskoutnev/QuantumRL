@@ -12,7 +12,6 @@ if __name__ == "__main__":
     n_test = 5
     batch_size = 4
     eval_update = 5
-    device = ""
     # ===== Config =====
     config = {
         'lr': lr,
