@@ -16,8 +16,8 @@ import pickle
 import matplotlib.pyplot as plt
 from collections import namedtuple
 
-device = "qiskit.ibmq"
-# device = ""
+# device = "qiskit.ibmq"
+device = ""
 if device == "qiskit.ibmq":
     print("Using IBMQ device")
     dev = qml.device("qiskit.ibmq", wires=4, backend='ibm_kyoto')
