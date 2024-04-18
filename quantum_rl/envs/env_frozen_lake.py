@@ -70,21 +70,9 @@ class QuantumGridWorld(gym.Env):
         # We will sample the target's location randomly until it does not coincide with the agent's location
         # self._target_location = self._agent_location
         self._target_location = np.array([3, 3])
-
-        # while np.array_equal(self._target_location, self._agent_location):
-        #     self._target_location = self.np_random.integers(
-        #         0, self.size, size=2, dtype=int
-        #     )
-
         self._hole_locations = set()
         self._hole_locations.add(tuple([1, 1]))
         self._hole_locations.add(tuple([2, 2]))
-        # self._hole_locations.add(tuple([3, 1]))
-        # while len(self._hole_locations) < self.num_holes:
-        #     hole_location = tuple(self.np_random.integers(0, self.size, size=2, dtype=int))
-        #     if not np.array_equal(hole_location, self._agent_location) and not np.array_equal(hole_location, self._target_location) and hole_location not in self._hole_locations: 
-        #         self._hole_locations.add(hole_location)
-        
         observation = self._get_obs()
         info = self._get_info()
 
