@@ -1,16 +1,19 @@
+import pennylane as qml
 from quantum_rl.envs.env_frozen_lake import QuantumGridWorld
 from quantum_rl.train_QQN import train, plot_rewards, plot_loss, plot_eval_rewards
+
 
 if __name__ == "__main__":
     # ===== Config =====
     lr = 0.01
     gamma = 0.999
     epsilon = 1.0
-    n_episodes = 250
+    n_episodes = 100
     max_steps = 50
     n_test = 5
     batch_size = 4
     eval_update = 5
+    device = ""
     # ===== Config =====
     config = {
         'lr': lr,

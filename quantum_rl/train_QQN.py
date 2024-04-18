@@ -15,7 +15,11 @@ import pickle
 import matplotlib.pyplot as plt
 from collections import namedtuple
 
-dev = qml.device("default.qubit", wires=4)
+device = ""
+if device == "qiskit.ibmq":
+    dev = qml.device("qiskit.ibmq", wires=4, backend='ibm_kyoto')
+else:
+    dev = qml.device("default.qubit" or device, wires=4)
 
 Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward', 'done'))    
 
@@ -206,7 +210,7 @@ def train(config):
                 iter_total_steps.append(t)
                 iter_total_loss.append(np.mean(loss_l))
                 break
-            
+
     return iter_index, iter_reward, iter_total_steps, timestep_reward, var_Q_circuit, var_Q_bias, iter_total_loss, eval_rewards
 
 def plot_rewards(iter_index, iter_reward, filename=None):
@@ -219,6 +223,7 @@ def plot_rewards(iter_index, iter_reward, filename=None):
         plt.savefig(filename)
     else:
         plt.show()
+    plt.close()
 
 def plot_loss(iter_index, iter_reward, filename=None):
     plt.plot(iter_index, iter_reward)
@@ -230,6 +235,7 @@ def plot_loss(iter_index, iter_reward, filename=None):
         plt.savefig(filename)
     else:
         plt.show()
+    plt.close()
 
 def plot_eval_rewards(eval_rewards, filename=None):
     plt.plot(eval_rewards)
@@ -241,6 +247,7 @@ def plot_eval_rewards(eval_rewards, filename=None):
         plt.savefig(filename)
     else:
         plt.show()
+    plt.close()
 
 def evaluate(env, var_Q_circuit, var_Q_bias, n_actions, config):
     total_rewards = []
